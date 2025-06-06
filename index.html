@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Daemon Noctis — Дощ, котики і фрази</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* === GLOBAL === */
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Poppins',sans-serif; }
+    html,body { width:100%; height:100%; overflow:hidden; background:#000; transition:background .5s; }
+    body.day { background:#87ceeb; }
+
+    /* === HEADER & NAVIGATION === */
+    header { position:fixed; top:0; left:0; width:100%; height:60px; z-index:100; }
+    .logo { position:absolute; left:20px; top:50%; transform:translateY(-50%); color:#fff; font-size:1.8em; }
+    .navigation { position:fixed; top:10px; right:-260px; display:flex; flex-direction:column; gap:8px; transition:right .4s; z-index:101; }
+    .navigation.visible { right:20px; }
+    .navigation button { background:transparent; border:2px solid #fff; color:#fff; padding:8px 16px; border-radius:6px; cursor:pointer; transition:background .3s,color .3s; font-weight:500; }
+    .navigation button:hover { background:#fff; color:#162938; }
+
+    /* === MOBILE ADAPTIVE === */
+    @media(max-width:480px) {
+      .navigation { right:10px; }
+      .logo { font-size:1.4em; }
+      .navigation button { padding:6px 12px; font-size:0.9em; }
+      #groundCats { width:100px; margin-top:-10px; }
+      #clock { font-size:2em; }
+      .popup { width:90%; padding:16px; }
+    }
+
+    /* === CANVAS & CONTENT === */
+    .content-wrapper { position:relative; width:100%; height:100%; }
+    canvas { position:absolute; top:0; left:0; width:100%; height:100%; }
+    #starCanvas { z-index:1; }
+    #rainCanvas { z-index:2; }
+    #lightCanvas { z-index:3; }
+    #fireflyCanvas { z-index:4; pointer-events:none; display:none; }
+    body.night #fireflyCanvas { display:block; }
+    #clock { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; font-size:3em; z-index:50; }
+    #groundShelter { position:absolute; bottom:0; left:50%; transform:translateX(-50%); z-index:60; padding-bottom:20px; text-align:center; }
+    #groundCats { width:160px; margin-top:-20px; filter:drop-shadow(0 0 8px rgba(255,255,255,0.3)); display:block; margin:0 auto; }
+
+    /* === POPUPS === */
+    .popup { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0); width:360px; background:rgba(0,0,0,0.8); color:#fff; border-radius:16px; padding:20px; backdrop-filter:blur(10px) saturate(1.5); transition:transform .4s; z-index:200; }
+    .popup.active { transform:translate(-50%,-50%) scale(1); }
+    .popup .icon-close { position:absolute; top:10px; right:10px; font-size:1.2em; cursor:pointer; }
+    .popup h3 { margin-bottom:12px; }
+    .popup p { margin:6px 0; }
+
+    /* === LISTS (Links, Guest, Settings) === */
+    .links-list, .guest-form, #settingsForm { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+    .links-list button, .guest-form button, #settingsForm button { display:flex; align-items:center; gap:8px; color:#fff; background:transparent; border:2px solid #fff; padding:8px 12px; border-radius:8px; cursor:pointer; transition:background .3s,color .3s; }
+    .links-list button:hover, .guest-form button:hover, #settingsForm button:hover { background:#fff; color:#162938; }
+    .links-list img { width:20px; height:20px; }
+    .guest-form input, .guest-form textarea { width:100%; padding:8px; background:transparent; border:1px solid rgba(255,255,255,0.5); border-radius:6px; color:#fff; }
+    .messages { margin-top:12px; max-height:200px; overflow-y:auto; border-top:1px solid rgba(255,255,255,0.3); padding-top:12px; }
+    .message { margin-bottom:8px; padding:6px; border:1px solid rgba(255,255,255,0.3); border-radius:6px; background:rgba(255,255,255,0.05); }
+
+    /* === SETTINGS FORM === */
+    #settingsPopup label { color:#fff; margin-right:8px; }
+    #settingsPopup .settings-row { display:flex; align-items:center; justify-content:space-between; margin:8px 0; }
+    #settingsForm input[type=range], #settingsForm input[type=color] { flex:1; }
+
+    /* === CURSOR TRAIL === */
+    .cursor-trail { position:absolute; width:5px; height:5px; border-radius:50%; background:rgba(174,194,224,0.7); pointer-events:none; animation:fade 1s forwards; }
+    @keyframes fade { to { opacity:0; transform:scale(4); } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">Daemon Noctis</div>
+  <div class="navigation" id="navMenu">
+    <button id="btnAbout">About</button>
+    <button id="btnLinks">Links</button>
+    <button id="btnGuest">GuestBook</button>
+    <button id="btnSettings">Settings</button>
+    <button id="btnToggle">Day</button>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <canvas id="starCanvas"></canvas>
+  <canvas id="rainCanvas"></canvas>
+  <canvas id="lightCanvas"></canvas>
+  <canvas id="fireflyCanvas"></canvas>
+  <div id="clock"></div>
+  <div id="groundShelter"><img id="groundCats" src="7fbb63c.png" alt="Sleeping Cats"></div>
+
+  <!-- About Popup -->
+  <div class="popup" id="aboutPopup">
+    <span class="icon-close" id="closeAbout">&times;</span>
+    <h3>About Daemon Noctis</h3>
+    <p>Tech stack: C++, Delphi, Pascal, BackEnd, FrontEnd</p>
+    <p>Love cats and <span style="color:#ff4d4d;">######</span></p>
+    <p><span style="color:#0057B7;">Ukr</span><span style="color:#FFD700;">aine</span></p>
+  </div>
+
+  <!-- Links Popup -->
+  <div class="popup" id="linksPopup">
+    <span class="icon-close" id="closeLinks">&times;</span>
+    <h3>Links</h3>
+    <div class="links-list">
+      <button onclick="window.open('https://discord.com/users/daemonnoctis','_blank')"><img src="DsSymbol.svg" alt="Discord"> daemonnoctis</button>
+      <button onclick="window.open('https://t.me/DaemonNoctis','_blank')"><img src="Telegram_logo.svg.png" alt="Telegram"> Telegram</button>
+      <button onclick="window.open('https://steamcommunity.com/profiles/76561199310038877/','_blank')"><img src="logo_steam.png" alt="Steam"> Steam</button>
+    </div>
+  </div>
+
+  <!-- GuestBook Popup -->
+  <div class="popup" id="guestPopup">
+    <span class="icon-close" id="closeGuest">&times;</span>
+    <h3>GuestBook</h3>
+    <form class="guest-form" id="guestForm">
+      <input type="text" id="guestName" placeholder="Your name" required>
+      <textarea id="guestMsg" rows="4" placeholder="Your message..." required></textarea>
+      <button type="submit">Submit</button>
+    </form>
+    <div class="messages" id="messages"></div>
+  </div>
+
+  <!-- Settings Popup -->
+  <div class="popup" id="settingsPopup">
+    <span class="icon-close" id="closeSettings">&times;</span>
+    <h3>Settings</h3>
+    <form id="settingsForm">
+      <div class="settings-row">
+        <label for="rainVolume">Rain Volume</label>
+        <input type="range" id="rainVolume" min="0" max="1" step="0.05">
+      </div>
+      <div class="settings-row">
+        <label for="musicVolume">Music Volume</label>
+        <input type="range" id="musicVolume" min="0" max="1" step="0.05">
+      </div>
+      <div class="settings-row">
+        <label for="rainSpeed">Rain Speed</label>
+        <input type="range" id="rainSpeed" min="1" max="10" step="0.5">
+      </div>
+      <div class="settings-row">
+        <label for="rainColor">Rain Color</label>
+        <input type="color" id="rainColor">
+      </div>
+    </form>
+  </div>
+</div>
+
+<audio id="rainSound" src="rain.mp3" loop autoplay></audio>
+<audio id="musicSound" src="music.mp3" loop autoplay></audio>
+
+<script>
+  // Dimensions & reload
+  const W = window.innerWidth, H = window.innerHeight;
+  window.addEventListener('resize', ()=>location.reload());
+
+  // NAVIGATION SHOW/HIDE
+  const nav = document.getElementById('navMenu');
+  let firstHover = false;
+  nav.classList.add('visible');
+  // mark first hover over any button
+  document.querySelectorAll('.navigation button').forEach(btn => btn.addEventListener('mouseenter', ()=> firstHover = true));
+  // mousemove: show if in corner, hide if hovered before
+  document.addEventListener('mousemove', e => {
+    const inCorner = e.clientX > W - 50 && e.clientY < 50;
+    if(inCorner) nav.classList.add('visible');
+    else if(firstHover && !nav.matches(':hover')) nav.classList.remove('visible');
+  });
+  nav.addEventListener('mouseenter', ()=> nav.classList.add('visible'));
+  nav.addEventListener('mouseleave', ()=> { if(firstHover) nav.classList.remove('visible'); });
+
+  // STARFIELD
+  const starC = document.getElementById('starCanvas'), sCtx = starC.getContext('2d'); starC.width=W; starC.height=H;
+  const stars = Array.from({length:200}, ()=>({x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.2, tw:Math.random()*Math.PI*2}));
+  (function drawStars(){ sCtx.clearRect(0,0,W,H); stars.forEach(s=>{ let a=0.5+0.5*Math.sin(Date.now()/1e3+s.tw); sCtx.fillStyle=`rgba(255,255,255,${a})`; sCtx.beginPath(); sCtx.arc(s.x,s.y,s.r,0,2*Math.PI); sCtx.fill(); }); requestAnimationFrame(drawStars); })();
+
+  // RAIN
+  const rainC=document.getElementById('rainCanvas'), rCtx=rainC.getContext('2d'); rainC.width=W; rainC.height=H;
+  let drops = [], rainSpeed=6, rainColor='#aec2e0';
+  function initRain(){ drops=[]; for(let i=0;i<300;i++) drops.push({x:Math.random()*W, y:Math.random()*H, len:10+Math.random()*20, speed:rainSpeed, op:0.2+Math.random()*0.3}); }
+  (function drawRain(){ rCtx.clearRect(0,0,W,H); rCtx.lineWidth=1; rCtx.lineCap='round'; rCtx.strokeStyle=rainColor; drops.forEach(d=>{ rCtx.globalAlpha=d.op; rCtx.beginPath(); rCtx.moveTo(d.x,d.y); rCtx.lineTo(d.x,d.y+d.len); rCtx.stroke(); d.y+=d.speed; if(d.y>H){d.y=-d.len; d.x=Math.random()*W;} }); requestAnimationFrame(drawRain); })(); initRain();
+
+  // LIGHTNING
+  const lightC=document.getElementById('lightCanvas'), lCtx=lightC.getContext('2d'); lightC.width=W; lightC.height=H;
+  setInterval(()=>{ if(document.body.classList.contains('night') && Math.random()<0.05){ lCtx.fillStyle='rgba(255,255,255,0.2)'; lCtx.fillRect(0,0,W,H); setTimeout(()=>lCtx.clearRect(0,0,W,H),100); } },5000);
+
+  // FIREFLIES
+  const fireC=document.getElementById('fireflyCanvas'), fCtx=fireC.getContext('2d'); fireC.width=W; fireC.height=H;
+  let flies=[];
+  function initFire(){ flies=[]; for(let i=0;i<50;i++) flies.push({x:Math.random()*W, y:Math.random()*H, r:2+Math.random()*2, dx:(Math.random()-0.5)*2, dy:(Math.random()-0.5)*2, a:Math.random()}); }
+  (function drawFire(){ fCtx.clearRect(0,0,W,H); if(!document.body.classList.contains('day')) flies.forEach(f=>{ f.x+=f.dx; f.y+=f.dy; f.a+= (Math.random()-0.5)*0.02; f.a=Math.max(0,Math.min(1,f.a)); fCtx.fillStyle=`rgba(255,255,200,${f.a})`; fCtx.beginPath(); fCtx.arc(f.x,f.y,f.r,0,2*Math.PI); fCtx.fill(); if(f.x<0||f.x>W||f.y<0||f.y>H){ f.x=Math.random()*W; f.y=Math.random()*H;} }); requestAnimationFrame(drawFire); })(); initFire();
+
+  // CLOCK
+  const clk=document.getElementById('clock'); setInterval(()=>clk.textContent=new Date().toLocaleTimeString(),1000); clk.textContent=new Date().toLocaleTimeString();
+
+  // POPUPS
+  ['About','Links','Guest','Settings'].forEach(id=>{ document.getElementById('btn'+id).onclick=()=>document.getElementById(id.toLowerCase()+'Popup').classList.add('active'); document.getElementById('close'+id).onclick=()=>document.getElementById(id.toLowerCase()+'Popup').classList.remove('active'); });
+
+  // DAY/NIGHT
+  const btnToggle=document.getElementById('btnToggle'); function setMode(m){ document.body.classList.remove('day','night'); document.body.classList.add(m); btnToggle.textContent=m.charAt(0).toUpperCase()+m.slice(1);} btnToggle.onclick=()=>setMode(document.body.classList.contains('day')?'night':'day'); setMode((new Date().getHours()>=7&&new Date().getHours()<19)?'day':'night');
+
+  // GUESTBOOK
+  const form=document.getElementById('guestForm'), msgs=document.getElementById('messages'); form.onsubmit=e=>{ e.preventDefault(); const n=form.guestName.value.trim(), m=form.guestMsg.value.trim(); if(!n||!m) return; const d=document.createElement('div'); d.className='message'; d.innerHTML=`<strong>${n}:</strong> ${m}`; msgs.prepend(d); form.reset(); };
+
+  // AUDIO
+  const rainAudio=new Audio('rain.mp3'), musicAudio=new Audio('music.mp3'); rainAudio.loop=musicAudio.loop=true; rainAudio.volume=musicAudio.volume=0.5; rainAudio.play(); musicAudio.play();
+  const rv=document.getElementById('rainVolume'), mv=document.getElementById('musicVolume'), sp=document.getElementById('rainSpeed'), rc=document.getElementById('rainColor');
+  rv.value=rainAudio.volume; mv.value=musicAudio.volume; sp.value=rainSpeed; rc.value=rainColor;
+  rv.oninput=e=>rainAudio.volume=e.target.value; mv.oninput=e=>musicAudio.volume=e.target.value;
+  sp.oninput=e=>{ rainSpeed=parseFloat(e.target.value); initRain(); };
+  rc.oninput=e=>rainColor=e.target.value;
+
+  // PARALLAX
+  document.addEventListener('mousemove', e=>{ const dx=(e.clientX/W-0.5)*20, dy=(e.clientY/H-0.5)*20; starC.style.transform=`translate(${dx}px,${dy}px)`; rainC.style.transform=`translate(${dx*1.5}px,${dy*1.5}px)`; });
+
+  // CURSOR TRAIL
+  document.addEventListener('mousemove', e=>{ const dot=document.createElement('div'); dot.className='cursor-trail'; dot.style.left=e.pageX+'px'; dot.style.top=e.pageY+'px'; document.body.append(dot); setTimeout(()=>dot.remove(),1000); });
+</script>
+</body>
+</html>
