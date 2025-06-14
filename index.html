@@ -2,75 +2,138 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Daemon Noctis — Дощ, котики і фрази</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Daemon Noctis</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* === GLOBAL === */
-    * { margin:0; padding:0; box-sizing:border-box; font-family:'Poppins',sans-serif; }
-    html,body { width:100%; height:100%; overflow:hidden; background:#000; transition:background .5s; }
-    body.day { background:#87ceeb; }
+    /* ========= ГЛОБАЛЬНІ ========= */
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
+    html,body{width:100%;height:100%;overflow:hidden;transition:background .5s}
+    body.day{background:#87ceeb}
+    body.night{background:#000}
 
-    /* === HEADER & NAVIGATION === */
-    header { position:fixed; top:0; left:0; width:100%; height:60px; z-index:100; }
-    .logo { position:absolute; left:20px; top:50%; transform:translateY(-50%); color:#fff; font-size:1.8em; }
-    .navigation { position:fixed; top:10px; right:-260px; display:flex; flex-direction:column; gap:8px; transition:right .4s; z-index:101; }
-    .navigation.visible { right:20px; }
-    .navigation button { background:transparent; border:2px solid #fff; color:#fff; padding:8px 16px; border-radius:6px; cursor:pointer; transition:background .3s,color .3s; font-weight:500; }
-    .navigation button:hover { background:#fff; color:#162938; }
-
-    /* === MOBILE ADAPTIVE === */
-    @media(max-width:480px) {
-      .navigation { right:10px; }
-      .logo { font-size:1.4em; }
-      .navigation button { padding:6px 12px; font-size:0.9em; }
-      #groundCats { width:100px; margin-top:-10px; }
-      #clock { font-size:2em; }
-      .popup { width:90%; padding:16px; }
+    /* ========= INSOMNIA OVERLAY ========= */
+    #sleepOverlay{
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      backdrop-filter:blur(12px);background:rgba(0,0,0,0.6);
+      display:flex;align-items:center;justify-content:center;
+      color:#fff;font-size:2em;z-index:999;
+      opacity:1;transition:opacity 1s ease-in-out;
     }
 
-    /* === CANVAS & CONTENT === */
-    .content-wrapper { position:relative; width:100%; height:100%; }
-    canvas { position:absolute; top:0; left:0; width:100%; height:100%; }
-    #starCanvas { z-index:1; }
-    #rainCanvas { z-index:2; }
-    #lightCanvas { z-index:3; }
-    #fireflyCanvas { z-index:4; pointer-events:none; display:none; }
-    body.night #fireflyCanvas { display:block; }
-    #clock { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; font-size:3em; z-index:50; }
-    #groundShelter { position:absolute; bottom:0; left:50%; transform:translateX(-50%); z-index:60; padding-bottom:20px; text-align:center; }
-    #groundCats { width:160px; margin-top:-20px; filter:drop-shadow(0 0 8px rgba(255,255,255,0.3)); display:block; margin:0 auto; }
+    /* ========= HEADER & NAV ========= */
+    header{position:fixed;top:0;left:0;width:100%;height:60px;z-index:100}
+    .logo{position:absolute;left:20px;top:50%;transform:translateY(-50%);color:#fff;font-size:1.8em;transition:opacity .5s}
+    .navigation{
+      position:fixed;top:10px;right:-260px;
+      display:flex;flex-direction:column;gap:8px;
+      transition:right .4s;z-index:101;
+    }
+    .navigation.visible{right:20px}
+    .navigation button{
+      background:transparent;border:2px solid #fff;color:#fff;
+      padding:8px 16px;border-radius:6px;cursor:pointer;
+      transition:background .3s,color .3s;font-weight:500;
+    }
+    .navigation button:hover{background:#fff;color:#162938}
+    @media(max-width:480px){
+      .navigation{right:10px}
+      .logo{font-size:1.4em}
+      .navigation button{padding:6px 12px;font-size:0.9em}
+      #clock{font-size:2em}
+      .popup{width:90%;padding:16px}
+    }
 
-    /* === POPUPS === */
-    .popup { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0); width:360px; background:rgba(0,0,0,0.8); color:#fff; border-radius:16px; padding:20px; backdrop-filter:blur(10px) saturate(1.5); transition:transform .4s; z-index:200; }
-    .popup.active { transform:translate(-50%,-50%) scale(1); }
-    .popup .icon-close { position:absolute; top:10px; right:10px; font-size:1.2em; cursor:pointer; }
-    .popup h3 { margin-bottom:12px; }
-    .popup p { margin:6px 0; }
+    /* ========= ШАРИ ========= */
+    .content-wrapper{position:relative;width:100%;height:100%}
+    canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+    #starCanvas{z-index:1}
+    #rainCanvas{z-index:2}
+    #phraseContainer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3}
+    #fallingContainer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4}
+    #lightCanvas{z-index:5}
+    #fireflyCanvas{z-index:6;pointer-events:none;display:none}
+    body.night #fireflyCanvas{display:block}
 
-    /* === LISTS (Links, Guest, Settings) === */
-    .links-list, .guest-form, #settingsForm { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
-    .links-list button, .guest-form button, #settingsForm button { display:flex; align-items:center; gap:8px; color:#fff; background:transparent; border:2px solid #fff; padding:8px 12px; border-radius:8px; cursor:pointer; transition:background .3s,color .3s; }
-    .links-list button:hover, .guest-form button:hover, #settingsForm button:hover { background:#fff; color:#162938; }
-    .links-list img { width:20px; height:20px; }
-    .guest-form input, .guest-form textarea { width:100%; padding:8px; background:transparent; border:1px solid rgba(255,255,255,0.5); border-radius:6px; color:#fff; }
-    .messages { margin-top:12px; max-height:200px; overflow-y:auto; border-top:1px solid rgba(255,255,255,0.3); padding-top:12px; }
-    .message { margin-bottom:8px; padding:6px; border:1px solid rgba(255,255,255,0.3); border-radius:6px; background:rgba(255,255,255,0.05); }
+    #clock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:3em;z-index:7}
 
-    /* === SETTINGS FORM === */
-    #settingsPopup label { color:#fff; margin-right:8px; }
-    #settingsPopup .settings-row { display:flex; align-items:center; justify-content:space-between; margin:8px 0; }
-    #settingsForm input[type=range], #settingsForm input[type=color] { flex:1; }
+    /* ========= НИЖНІЙ БЛОК  ========= */
+    #groundShelter{position:absolute;bottom:0;left:50%;transform:translateX(-50%);z-index:8;text-align:center}
+    .ground-img{width:160px;filter:drop-shadow(0 0 8px rgba(255,255,255,0.3));}
+    #flowerField{
+      position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+      display:none;flex-wrap:wrap;gap:4px;width:90%;max-width:600px;
+      justify-content:center;z-index:8;padding:10px;
+    }
+    #flowerField img{width:40px;user-select:none}
 
-    /* === CURSOR TRAIL === */
-    .cursor-trail { position:absolute; width:5px; height:5px; border-radius:50%; background:rgba(174,194,224,0.7); pointer-events:none; animation:fade 1s forwards; }
-    @keyframes fade { to { opacity:0; transform:scale(4); } }
+    /* ========= Банер ========= */
+    #dayBanner{
+      position:fixed;top:0;left:50%;transform:translateX(-50%);
+      background:rgba(255,255,255,0.8);color:#333;
+      padding:10px 20px;border-radius:0 0 8px 8px;
+      font-weight:500;transition:top .5s ease-in-out;z-index:9;
+    }
+
+    /* ========= POP‑UP ========= */
+    .popup{
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
+      width:360px;background:rgba(0,0,0,0.8);color:#fff;border-radius:16px;
+      padding:20px;backdrop-filter:blur(10px) saturate(1.5);
+      transition:transform .4s;z-index:200;
+    }
+    .popup.active{transform:translate(-50%,-50%) scale(1)}
+    .popup .icon-close{position:absolute;top:10px;right:10px;font-size:1.2em;cursor:pointer}
+    .popup h3{margin-bottom:12px}.popup p{margin:6px 0}
+    .links-list,.guest-form,#settingsForm{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+    .links-list button,.guest-form button,#settingsForm button{
+      display:flex;align-items:center;gap:8px;color:#fff;background:transparent;
+      border:2px solid #fff;padding:8px 12px;border-radius:8px;cursor:pointer;
+      transition:background .3s,color .3s
+    }
+    .links-list button:hover,.guest-form button:hover,#settingsForm button:hover{
+      background:#fff;color:#162938
+    }
+    .links-list img{width:20px;height:20px}
+    .guest-form input,.guest-form textarea,
+    #settingsForm input[type=range],#settingsForm input[type=color]{
+      width:100%;padding:8px;background:transparent;
+      border:1px solid rgba(255,255,255,0.5);border-radius:6px;color:#fff
+    }
+    .messages{margin-top:12px;max-height:200px;overflow-y:auto;border-top:1px solid rgba(255,255,255,0.3);padding-top:12px}
+    .message{margin-bottom:8px;padding:6px;border:1px solid rgba(255,255,255,0.3);border-radius:6px;background:rgba(255,255,255,0.05)}
+    #settingsForm .settings-row{display:flex;align-items:center;justify-content:space-between;margin:8px 0}
+
+    /* ========= STATS ========= */
+    #statsContent{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .stat-card{
+      background:rgba(255,255,255,0.1);padding:12px;border-radius:8px;
+      box-shadow:0 0 10px rgba(0,0,0,0.5);
+      display:flex;justify-content:space-between;align-items:center
+    }
+    .glitchText{color:#f33;animation:glitch 1s infinite}
+    @keyframes glitch{
+      0%,100%{opacity:1;transform:translate(0,0)}
+      20%{opacity:0.8;transform:translate(-1px,1px)}
+      40%{opacity:0.6;transform:translate(1px,-1px)}
+      60%{opacity:0.8;transform:translate(-1px,-1px)}
+      80%{opacity:0.7;transform:translate(1px,1px)}
+    }
+
+    /* ========= CURSOR TRAIL ========= */
+    .cursor-trail{
+      position:absolute;width:5px;height:5px;border-radius:50%;
+      background:rgba(174,194,224,0.7);pointer-events:none;animation:fade 1s forwards
+    }
+    @keyframes fade{to{opacity:0;transform:scale(4)}}
   </style>
 </head>
 <body>
+<div id="sleepOverlay">Теж безсоння? Хех</div>
+
 <header>
-  <div class="logo">Daemon Noctis</div>
-  <div class="navigation" id="navMenu">
+  <div class="logo" id="logoText">Daemon Noctis</div>
+  <div class="navigation visible" id="navMenu">
     <button id="btnAbout">About</button>
     <button id="btnLinks">Links</button>
     <button id="btnGuest">GuestBook</button>
@@ -82,137 +145,309 @@
 <div class="content-wrapper">
   <canvas id="starCanvas"></canvas>
   <canvas id="rainCanvas"></canvas>
+  <div id="phraseContainer"></div>
+  <div id="fallingContainer"></div>
   <canvas id="lightCanvas"></canvas>
   <canvas id="fireflyCanvas"></canvas>
   <div id="clock"></div>
-  <div id="groundShelter"><img id="groundCats" src="7fbb63c.png" alt="Sleeping Cats"></div>
 
-  <!-- About Popup -->
-  <div class="popup" id="aboutPopup">
-    <span class="icon-close" id="closeAbout">&times;</span>
-    <h3>About Daemon Noctis</h3>
-    <p>Tech stack: C++, Delphi, Pascal, BackEnd, FrontEnd</p>
-    <p>Love cats and <span style="color:#ff4d4d;">######</span></p>
-    <p><span style="color:#0057B7;">Ukr</span><span style="color:#FFD700;">aine</span></p>
-  </div>
-
-  <!-- Links Popup -->
-  <div class="popup" id="linksPopup">
-    <span class="icon-close" id="closeLinks">&times;</span>
-    <h3>Links</h3>
-    <div class="links-list">
-      <button onclick="window.open('https://discord.com/users/daemonnoctis','_blank')"><img src="DsSymbol.svg" alt="Discord"> daemonnoctis</button>
-      <button onclick="window.open('https://t.me/DaemonNoctis','_blank')"><img src="Telegram_logo.svg.png" alt="Telegram"> Telegram</button>
-      <button onclick="window.open('https://steamcommunity.com/profiles/76561199310038877/','_blank')"><img src="logo_steam.png" alt="Steam"> Steam</button>
-    </div>
-  </div>
-
-  <!-- GuestBook Popup -->
-  <div class="popup" id="guestPopup">
-    <span class="icon-close" id="closeGuest">&times;</span>
-    <h3>GuestBook</h3>
-    <form class="guest-form" id="guestForm">
-      <input type="text" id="guestName" placeholder="Your name" required>
-      <textarea id="guestMsg" rows="4" placeholder="Your message..." required></textarea>
-      <button type="submit">Submit</button>
-    </form>
-    <div class="messages" id="messages"></div>
-  </div>
-
-  <!-- Settings Popup -->
-  <div class="popup" id="settingsPopup">
-    <span class="icon-close" id="closeSettings">&times;</span>
-    <h3>Settings</h3>
-    <form id="settingsForm">
-      <div class="settings-row">
-        <label for="rainVolume">Rain Volume</label>
-        <input type="range" id="rainVolume" min="0" max="1" step="0.05">
-      </div>
-      <div class="settings-row">
-        <label for="musicVolume">Music Volume</label>
-        <input type="range" id="musicVolume" min="0" max="1" step="0.05">
-      </div>
-      <div class="settings-row">
-        <label for="rainSpeed">Rain Speed</label>
-        <input type="range" id="rainSpeed" min="1" max="10" step="0.5">
-      </div>
-      <div class="settings-row">
-        <label for="rainColor">Rain Color</label>
-        <input type="color" id="rainColor">
-      </div>
-    </form>
+  <div id="groundShelter">
+    <img id="groundImg" class="ground-img" src="7fbb63c.png" alt="Static">
+    <div id="flowerField"></div>
   </div>
 </div>
 
-<audio id="rainSound" src="rain.mp3" loop autoplay></audio>
-<audio id="musicSound" src="music.mp3" loop autoplay></audio>
+<div id="dayBanner">🌼 Нарциси цвітуть… і я теж 🌼</div>
+
+<!-- About + Stats -->
+<div class="popup" id="aboutPopup">
+  <span class="icon-close" id="closeAbout">&times;</span>
+  <h3>About Daemon Noctis</h3>
+  <p>Tech stack: C++, Delphi, Pascal, BackEnd, FrontEnd</p>
+  <p>Love cats and <span style="color:#ff4d4d;">######</span></p>
+  <p><span style="color:#0057B7;">Ukr</span><span style="color:#FFD700;">aine</span></p>
+  <button id="btnStats">Stats</button>
+</div>
+<div class="popup" id="statsPopup">
+  <span class="icon-close" id="closeStats">&times;</span>
+  <h3>Character Stats</h3>
+  <div id="statsContent">
+    <div class="stat-card"><span>Nickname</span><strong>Daemon Noctis</strong></div>
+    <div class="stat-card"><span>Name</span><strong>Roma</strong></div>
+    <div class="stat-card"><span>HP</span><span class="glitchText">Error</span></div>
+    <div class="stat-card"><span>MP</span><span class="glitchText">0/0</span></div>
+    <div class="stat-card"><span>C++</span><strong>A</strong></div>
+    <div class="stat-card"><span>Pascal</span><strong>A</strong></div>
+    <div class="stat-card"><span>Python</span><strong>B</strong></div>
+    <div class="stat-card"><span>HTML/CSS/JS</span><strong>B</strong></div>
+    <div class="stat-card"><span>Strength</span><strong>A-</strong></div>
+    <div class="stat-card"><span>Mental</span><strong>MAX</strong></div>
+    <div class="stat-card"><span>Talent</span><strong>MAX</strong></div>
+    <div class="stat-card"><span>Fast Learning</span><strong>MAX</strong></div>
+    <div class="stat-card"><span>Self-control</span><strong>MAX</strong></div>
+    <div class="stat-card"><span>Self-loving</span><strong>MAX</strong></div>
+    <div class="stat-card"><span>Self-hating</span><strong>MAX</strong></div>
+    <div class="stat-card"><span>Love</span><strong>F</strong></div>
+  </div>
+</div>
+
+<!-- Links -->
+<div class="popup" id="linksPopup">
+  <span class="icon-close" id="closeLinks">&times;</span>
+  <h3>Links</h3>
+  <div class="links-list">
+    <button onclick="window.open('https://discord.com/users/daemonnoctis')"><img src="DsSymbol.svg"> daemonnoctis</button>
+    <button onclick="window.open('https://t.me/DaemonNoctis')"><img src="Telegram_logo.svg.png"> Telegram</button>
+    <button onclick="window.open('https://steamcommunity.com/profiles/76561199310038877/')"><img src="logo_steam.png"> Steam</button>
+  </div>
+</div>
+
+<!-- GuestBook -->
+<div class="popup" id="guestPopup">
+  <span class="icon-close" id="closeGuest">&times;</span>
+  <h3>GuestBook</h3>
+  <form class="guest-form" id="guestForm">
+    <input type="text" id="guestName" placeholder="Your name" required>
+    <textarea id="guestMsg" rows="4" placeholder="Your message..." required></textarea>
+    <button type="submit">Submit</button>
+  </form>
+  <div class="messages" id="messages"></div>
+</div>
+
+<!-- Settings -->
+<div class="popup" id="settingsPopup">
+  <span class="icon-close" id="closeSettings">&times;</span>
+  <h3>Settings</h3>
+  <form id="settingsForm">
+    <div class="settings-row"><label for="rainVolume">Rain Volume</label><input type="range" id="rainVolume" min="0" max="1" step="0.05"></div>
+    <div class="settings-row"><label for="musicVolume">Music Volume</label><input type="range" id="musicVolume" min="0" max="1" step="0.05"></div>
+    <div class="settings-row"><label for="rainSpeed">Rain Speed</label><input type="range" id="rainSpeed" min="1" max="10" step="0.5"></div>
+    <div class="settings-row"><label for="rainColor">Rain Color</label><input type="color" id="rainColor"></div>
+    <div class="settings-row"><button id="toggleRainSound">Rain sound ON</button></div>
+  </form>
+</div>
+
+<!-- Audio -->
+<audio id="rainAudio" src="rain.mp3" loop autoplay></audio>
+<audio id="musicAudio" src="music.mp3" loop autoplay></audio>
 
 <script>
-  // Dimensions & reload
-  const W = window.innerWidth, H = window.innerHeight;
+  // Розміри
+  const W = innerWidth, H = innerHeight;
   window.addEventListener('resize', ()=>location.reload());
 
-  // NAVIGATION SHOW/HIDE
-  const nav = document.getElementById('navMenu');
-  let firstHover = false;
-  nav.classList.add('visible');
-  // mark first hover over any button
-  document.querySelectorAll('.navigation button').forEach(btn => btn.addEventListener('mouseenter', ()=> firstHover = true));
-  // mousemove: show if in corner, hide if hovered before
-  document.addEventListener('mousemove', e => {
-    const inCorner = e.clientX > W - 50 && e.clientY < 50;
-    if(inCorner) nav.classList.add('visible');
-    else if(firstHover && !nav.matches(':hover')) nav.classList.remove('visible');
+  // Insomnia overlay
+  const overlay=document.getElementById('sleepOverlay');
+  const hour=new Date().getHours();
+  if(hour<5){
+    setTimeout(()=>{
+      overlay.style.opacity=0;
+      setTimeout(()=>overlay.remove(),1000);
+    },3000);
+  } else overlay.remove();
+
+  // Навігація
+  const nav=document.getElementById('navMenu');
+  let firstHover=false; nav.classList.add('visible');
+  document.querySelectorAll('.navigation button').forEach(b=>b.onmouseenter=()=>firstHover=true);
+  document.addEventListener('mousemove',e=>{
+    const c=e.clientX>W-50&&e.clientY<50;
+    if(c) nav.classList.add('visible');
+    else if(firstHover&&!nav.matches(':hover')) nav.classList.remove('visible');
   });
-  nav.addEventListener('mouseenter', ()=> nav.classList.add('visible'));
-  nav.addEventListener('mouseleave', ()=> { if(firstHover) nav.classList.remove('visible'); });
+  nav.onmouseenter=()=>nav.classList.add('visible');
+  nav.onmouseleave=()=>{ if(firstHover)nav.classList.remove('visible'); };
 
-  // STARFIELD
-  const starC = document.getElementById('starCanvas'), sCtx = starC.getContext('2d'); starC.width=W; starC.height=H;
-  const stars = Array.from({length:200}, ()=>({x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.2, tw:Math.random()*Math.PI*2}));
-  (function drawStars(){ sCtx.clearRect(0,0,W,H); stars.forEach(s=>{ let a=0.5+0.5*Math.sin(Date.now()/1e3+s.tw); sCtx.fillStyle=`rgba(255,255,255,${a})`; sCtx.beginPath(); sCtx.arc(s.x,s.y,s.r,0,2*Math.PI); sCtx.fill(); }); requestAnimationFrame(drawStars); })();
+  // Logo cycle
+  const logo=document.getElementById('logoText'),
+          logoArr=['Daemon Noctis','Overthinker','?','Alive?'];
+  let li=0;
+  setInterval(()=>{
+    li=(li+1)%logoArr.length;
+    logo.style.opacity=0;
+    setTimeout(()=>{
+      logo.textContent=logoArr[li];
+      logo.classList.toggle('glitchText',logoArr[li].endsWith('?'));
+      logo.style.opacity=1;
+    },500);
+  },10000);
 
-  // RAIN
-  const rainC=document.getElementById('rainCanvas'), rCtx=rainC.getContext('2d'); rainC.width=W; rainC.height=H;
-  let drops = [], rainSpeed=6, rainColor='#aec2e0';
-  function initRain(){ drops=[]; for(let i=0;i<300;i++) drops.push({x:Math.random()*W, y:Math.random()*H, len:10+Math.random()*20, speed:rainSpeed, op:0.2+Math.random()*0.3}); }
-  (function drawRain(){ rCtx.clearRect(0,0,W,H); rCtx.lineWidth=1; rCtx.lineCap='round'; rCtx.strokeStyle=rainColor; drops.forEach(d=>{ rCtx.globalAlpha=d.op; rCtx.beginPath(); rCtx.moveTo(d.x,d.y); rCtx.lineTo(d.x,d.y+d.len); rCtx.stroke(); d.y+=d.speed; if(d.y>H){d.y=-d.len; d.x=Math.random()*W;} }); requestAnimationFrame(drawRain); })(); initRain();
+  // Starfield
+  const starC=document.getElementById('starCanvas'), sCtx=starC.getContext('2d');
+  starC.width=W;starC.height=H;
+  const stars=Array.from({length:200},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2,tw:Math.random()*Math.PI*2}));
+  (function ds(){sCtx.clearRect(0,0,W,H);
+    stars.forEach(s=>{let a=0.5+0.5*Math.sin(Date.now()/1e3+s.tw);
+      sCtx.fillStyle=`rgba(255,255,255,${a})`;sCtx.beginPath();
+      sCtx.arc(s.x,s.y,s.r,0,2*Math.PI);sCtx.fill();
+    });requestAnimationFrame(ds);} )();
 
-  // LIGHTNING
-  const lightC=document.getElementById('lightCanvas'), lCtx=lightC.getContext('2d'); lightC.width=W; lightC.height=H;
-  setInterval(()=>{ if(document.body.classList.contains('night') && Math.random()<0.05){ lCtx.fillStyle='rgba(255,255,255,0.2)'; lCtx.fillRect(0,0,W,H); setTimeout(()=>lCtx.clearRect(0,0,W,H),100); } },5000);
+  // Rain
+  const rainC=document.getElementById('rainCanvas'), rCtx=rainC.getContext('2d');
+  rainC.width=W;rainC.height=H;
+  let drops=[], rainSpeed=6, rainColor='#aec2e0', rainRAF=null, rainInterval=null;
+  function initRain(){drops=[];for(let i=0;i<300;i++)drops.push({x:Math.random()*W,y:Math.random()*H,len:10+Math.random()*20,speed:rainSpeed,op:0.2+Math.random()*0.3});}
+  function animateRain(){rCtx.clearRect(0,0,W,H);rCtx.lineWidth=1;rCtx.lineCap='round';rCtx.strokeStyle=rainColor;
+    drops.forEach(d=>{rCtx.globalAlpha=d.op;rCtx.beginPath();rCtx.moveTo(d.x,d.y);rCtx.lineTo(d.x,d.y+d.len);rCtx.stroke();
+      d.y+=d.speed; if(d.y>H){d.y=-d.len;d.x=Math.random()*W;}});
+    rainRAF=requestAnimationFrame(animateRain);
+  }
+  function startRain(){initRain();cancelAnimationFrame(rainRAF);animateRain();}
+  function stopRain(){cancelAnimationFrame(rainRAF);clearInterval(rainInterval);rCtx.clearRect(0,0,W,H);}
 
-  // FIREFLIES
-  const fireC=document.getElementById('fireflyCanvas'), fCtx=fireC.getContext('2d'); fireC.width=W; fireC.height=H;
-  let flies=[];
-  function initFire(){ flies=[]; for(let i=0;i<50;i++) flies.push({x:Math.random()*W, y:Math.random()*H, r:2+Math.random()*2, dx:(Math.random()-0.5)*2, dy:(Math.random()-0.5)*2, a:Math.random()}); }
-  (function drawFire(){ fCtx.clearRect(0,0,W,H); if(!document.body.classList.contains('day')) flies.forEach(f=>{ f.x+=f.dx; f.y+=f.dy; f.a+= (Math.random()-0.5)*0.02; f.a=Math.max(0,Math.min(1,f.a)); fCtx.fillStyle=`rgba(255,255,200,${f.a})`; fCtx.beginPath(); fCtx.arc(f.x,f.y,f.r,0,2*Math.PI); fCtx.fill(); if(f.x<0||f.x>W||f.y<0||f.y>H){ f.x=Math.random()*W; f.y=Math.random()*H;} }); requestAnimationFrame(drawFire); })(); initFire();
+  // Lightning
+  const lightC=document.getElementById('lightCanvas'), lCtx=lightC.getContext('2d');
+  lightC.width=W;lightC.height=H;
+  setInterval(()=>{if(document.body.classList.contains('night')&&Math.random()<0.05){
+    lCtx.fillStyle='rgba(255,255,255,0.2)';lCtx.fillRect(0,0,W,H);
+    setTimeout(()=>lCtx.clearRect(0,0,W,H),100);
+  }},5000);
 
-  // CLOCK
-  const clk=document.getElementById('clock'); setInterval(()=>clk.textContent=new Date().toLocaleTimeString(),1000); clk.textContent=new Date().toLocaleTimeString();
+  // Fireflies
+  const fireC=document.getElementById('fireflyCanvas'), fCtx=fireC.getContext('2d');
+  fireC.width=W;fireC.height=H;let flies=[];
+  function initFire(){flies=[];for(let i=0;i<50;i++)flies.push({x:Math.random()*W,y:Math.random()*H,r:2+Math.random()*2,dx:(Math.random()-0.5)*2,dy:(Math.random()-0.5)*2,a:Math.random()});}
+  (function df(){fCtx.clearRect(0,0,W,H);if(!document.body.classList.contains('day'))flies.forEach(f=>{
+    f.x+=f.dx;f.y+=f.dy;f.a+=(Math.random()-0.5)*0.02;f.a=Math.max(0,Math.min(1,f.a));
+    fCtx.fillStyle=`rgba(255,255,200,${f.a})`;fCtx.beginPath();fCtx.arc(f.x,f.y,f.r,0,2*Math.PI);fCtx.fill();
+    if(f.x<0||f.x>W||f.y<0||f.y>H){f.x=Math.random()*W;f.y=Math.random()*H;}
+  });requestAnimationFrame(df);} )();
+  initFire();
 
-  // POPUPS
-  ['About','Links','Guest','Settings'].forEach(id=>{ document.getElementById('btn'+id).onclick=()=>document.getElementById(id.toLowerCase()+'Popup').classList.add('active'); document.getElementById('close'+id).onclick=()=>document.getElementById(id.toLowerCase()+'Popup').classList.remove('active'); });
+  // Clock
+  const clk=document.getElementById('clock');
+  setInterval(()=>clk.textContent=new Date().toLocaleTimeString(),1000);
+  clk.textContent=new Date().toLocaleTimeString();
 
-  // DAY/NIGHT
-  const btnToggle=document.getElementById('btnToggle'); function setMode(m){ document.body.classList.remove('day','night'); document.body.classList.add(m); btnToggle.textContent=m.charAt(0).toUpperCase()+m.slice(1);} btnToggle.onclick=()=>setMode(document.body.classList.contains('day')?'night':'day'); setMode((new Date().getHours()>=7&&new Date().getHours()<19)?'day':'night');
+  // Pop‑ups
+  ['About','Links','Guest','Settings'].forEach(id=>{
+    document.getElementById('btn'+id).onclick=()=>document.getElementById(id.toLowerCase()+'Popup').classList.add('active');
+    document.getElementById('close'+id).onclick=()=>document.getElementById(id.toLowerCase()+'Popup').classList.remove('active');
+  });
+  document.getElementById('btnStats').onclick=()=>document.getElementById('statsPopup').classList.add('active');
+  document.getElementById('closeStats').onclick=()=>document.getElementById('statsPopup').classList.remove('active');
 
-  // GUESTBOOK
-  const form=document.getElementById('guestForm'), msgs=document.getElementById('messages'); form.onsubmit=e=>{ e.preventDefault(); const n=form.guestName.value.trim(), m=form.guestMsg.value.trim(); if(!n||!m) return; const d=document.createElement('div'); d.className='message'; d.innerHTML=`<strong>${n}:</strong> ${m}`; msgs.prepend(d); form.reset(); };
+  // GuestBook
+  const form=document.getElementById('guestForm'), msgs=document.getElementById('messages');
+  form.onsubmit=e=>{e.preventDefault();const n=form.guestName.value.trim(),m=form.guestMsg.value.trim();if(!n||!m)return;
+    const d=document.createElement('div');d.className='message';d.innerHTML=`<strong>${n}:</strong> ${m}`;msgs.prepend(d);form.reset();
+  };
 
-  // AUDIO
-  const rainAudio=new Audio('rain.mp3'), musicAudio=new Audio('music.mp3'); rainAudio.loop=musicAudio.loop=true; rainAudio.volume=musicAudio.volume=0.5; rainAudio.play(); musicAudio.play();
-  const rv=document.getElementById('rainVolume'), mv=document.getElementById('musicVolume'), sp=document.getElementById('rainSpeed'), rc=document.getElementById('rainColor');
-  rv.value=rainAudio.volume; mv.value=musicAudio.volume; sp.value=rainSpeed; rc.value=rainColor;
-  rv.oninput=e=>rainAudio.volume=e.target.value; mv.oninput=e=>musicAudio.volume=e.target.value;
-  sp.oninput=e=>{ rainSpeed=parseFloat(e.target.value); initRain(); };
-  rc.oninput=e=>rainColor=e.target.value;
+  // Audio controls
+  const rainA=document.getElementById('rainAudio'), musicA=document.getElementById('musicAudio');
+  rainA.loop=musicA.loop=true;rainA.volume=musicA.volume=0.5;rainA.play();musicA.play();
+  document.getElementById('rainVolume').oninput=e=>rainA.volume=e.target.value;
+  document.getElementById('musicVolume').oninput=e=>musicA.volume=e.target.value;
+  document.getElementById('rainSpeed').oninput=e=>{rainSpeed=+e.target.value;initRain();};
+  document.getElementById('rainColor').oninput=e=>rainColor=e.target.value;
+  const btnRS=document.getElementById('toggleRainSound');
+  btnRS.onclick=e=>{e.preventDefault();if(rainA.paused){rainA.play();btnRS.textContent='Rain sound ON'}else{rainA.pause();btnRS.textContent='Rain sound OFF'}};
 
-  // PARALLAX
-  document.addEventListener('mousemove', e=>{ const dx=(e.clientX/W-0.5)*20, dy=(e.clientY/H-0.5)*20; starC.style.transform=`translate(${dx}px,${dy}px)`; rainC.style.transform=`translate(${dx*1.5}px,${dy*1.5}px)`; });
+  // Night phrases
+  const phrases=["Fool.","Genius.","Lazy.","Overthinker","Running out time","3089"];
+  const phraseC=document.getElementById('phraseContainer');
+  function spawnRainPhrase(){
+    const t=document.createElement('div');
+    t.textContent=phrases[Math.floor(Math.random()*phrases.length)];
+    t.style.position='absolute';
+    t.style.left=Math.random()*(W-100)+'px';t.style.top='-20px';
+    t.style.color='#fff';t.style.fontSize='1em';
+    phraseC.append(t);
+    const speed=1+Math.random();
+    (function fall(){
+      let y=parseFloat(t.style.top);
+      if(y<H){t.style.top=y+speed+'px';requestAnimationFrame(fall);} else t.remove();
+    })();
+  }
 
-  // CURSOR TRAIL
-  document.addEventListener('mousemove', e=>{ const dot=document.createElement('div'); dot.className='cursor-trail'; dot.style.left=e.pageX+'px'; dot.style.top=e.pageY+'px'; document.body.append(dot); setTimeout(()=>dot.remove(),1000); });
+  // Flower field & falling flowers
+  let flowerCount=0,flowerInterval=null;
+  const field=document.getElementById('flowerField');
+  function setupFlowerField(){
+    field.innerHTML='';
+    for(let i=0;i<200;i++){
+      const img=document.createElement('img');
+      img.src='daffodil_static.png';
+      field.append(img);
+    }
+  }
+  function spawnFlower(){
+    const img=document.createElement('img');
+    img.src='daffodil_fall.png';
+    img.style.position='absolute';
+    img.style.width='50px';
+    img.style.left=Math.random()*(W-50)+'px';
+    img.style.top='-60px';
+    if(++flowerCount%2===0)img.style.transform='scaleX(-1)';
+    document.getElementById('fallingContainer').append(img);
+    const speed=1+Math.random()*2;
+    (function fall(){
+      let y=parseFloat(img.style.top);
+      if(y<H){img.style.top=y+speed+'px';requestAnimationFrame(fall);} else img.remove();
+    })();
+  }
+
+  // Day/Night toggle
+  const btnToggle=document.getElementById('btnToggle'),
+          banner=document.getElementById('dayBanner'),
+          groundImg=document.getElementById('groundImg');
+  function setMode(mode){
+    document.body.classList.remove('day','night');
+    document.body.classList.add(mode);
+    btnToggle.textContent=mode.charAt(0).toUpperCase()+mode.slice(1);
+
+    if(mode==='day'){
+      stopRain();rainA.pause();
+      // котик сховаємо
+      groundImg.style.display='none';
+      // поле нарцисів
+      field.style.display='flex';
+      setupFlowerField();
+      clearInterval(flowerInterval);
+      spawnFlower();
+      flowerInterval=setInterval(spawnFlower,1000+Math.random()*3000);
+      // банер зверху
+      banner.style.top='0';
+      // нічні фрази зупинимо
+      clearInterval(rainInterval);
+
+    } else {
+      // night
+      banner.style.top='-100px';
+      clearInterval(flowerInterval);
+      document.getElementById('fallingContainer').innerHTML='';
+      field.style.display='none';
+      groundImg.style.display='block';
+      groundImg.src='7fbb63c.png';
+      rainA.play();startRain();
+      // банер опустимо
+      // фрази
+      spawnRainPhrase();
+      rainInterval=setInterval(spawnRainPhrase,30000);
+    }
+  }
+
+  // Ініціалізація
+  startRain();
+  btnToggle.onclick=()=>setMode(document.body.classList.contains('day')?'night':'day');
+  setMode(hour>=7&&hour<19?'day':'night');
+
+  // Parallax
+  document.addEventListener('mousemove',e=>{
+    const dx=(e.clientX/W-0.5)*20,dy=(e.clientY/H-0.5)*20;
+    starC.style.transform=`translate(${dx}px,${dy}px)`;
+    rainC.style.transform=`translate(${dx*1.5}px,${dy*1.5}px)`;
+  });
+
+  // Cursor trail
+  document.addEventListener('mousemove',e=>{
+    const dot=document.createElement('div');
+    dot.className='cursor-trail';
+    dot.style.left=e.pageX+'px';dot.style.top=e.pageY+'px';
+    document.body.append(dot);
+    setTimeout(()=>dot.remove(),1000);
+  });
+
 </script>
 </body>
 </html>
